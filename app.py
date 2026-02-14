@@ -101,14 +101,9 @@ class User(UserMixin):
 def load_user(user_id):
     if not cursor:
         return None
-
-    cursor.execute(
-        "SELECT id, username, email FROM users WHERE id=%s",
-        (user_id,)
-    )
+    cursor.execute("SELECT id, username, email FROM users WHERE id=%s", (user_id,))
     row = cursor.fetchone()
     return User(row['id'], row['username'], row['email']) if row else None
-
 
 # --- Forms ---
 
@@ -164,6 +159,9 @@ def penthouses():
 
 @app.route("/search")
 def search():
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(url_for("home"))
     params = []
     query = "SELECT * FROM properties WHERE 1=1"
 
@@ -214,6 +212,9 @@ def search():
 
 @app.route("/property/<int:id>")
 def property_detail(id):
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(url_for("home"))
     cursor.execute("SELECT * FROM properties WHERE id=%s", (id,))
     property = cursor.fetchone()
     return render_template("property_detail.html", property=property)
@@ -224,6 +225,9 @@ def property_detail(id):
 def signup():
     form = SignupForm()
     if form.validate_on_submit():
+        if not cursor:
+            flash("Database unavailable. Please try again later.")
+            return redirect(url_for("signup"))
         try:
             cursor.execute("INSERT INTO users (username,email,password_hash) VALUES (%s,%s,%s)",
                            (form.username.data, form.email.data, generate_password_hash(form.password.data)))
@@ -238,6 +242,9 @@ def signup():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
+        if not cursor:
+            flash("Database unavailable. Please try again later.")
+            return redirect(url_for("login"))
         cursor.execute("SELECT * FROM users WHERE email=%s", (form.email.data,))
         u = cursor.fetchone()
         if u and check_password_hash(u['password_hash'], form.password.data):
@@ -258,6 +265,9 @@ def logout():
 @app.route("/add_to_wishlist/<int:id>")
 @login_required
 def add_to_wishlist(id):
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(request.referrer or url_for("home"))
     try:
         cursor.execute("INSERT INTO wishlists (user_id,property_id) VALUES (%s,%s)", (current_user.id, id))
         db.commit()
@@ -268,6 +278,9 @@ def add_to_wishlist(id):
 @app.route("/wishlist")
 @login_required
 def wishlist():
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(url_for("home"))
     cursor.execute("""
         SELECT p.* FROM properties p
         JOIN wishlists w ON p.id = w.property_id
@@ -278,6 +291,9 @@ def wishlist():
 @app.route("/remove_from_wishlist/<int:id>")
 @login_required
 def remove_from_wishlist(id):
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(request.referrer or url_for("wishlist"))
     cursor.execute("DELETE FROM wishlists WHERE user_id=%s AND property_id=%s", (current_user.id, id))
     db.commit()
     return redirect(request.referrer or url_for("wishlist"))
@@ -295,6 +311,9 @@ def format_number(value):
 @app.route("/estimate_price", methods=["POST"])
 @login_required
 def estimate_price():
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(url_for("dashboard"))
     city_input = request.form.get('city', '').strip()
     area_str = request.form.get('area', '').strip()
 
@@ -420,6 +439,9 @@ def estimate_price():
 @app.route("/enquiry", methods=["POST"])
 @login_required
 def enquiry():
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(url_for("home"))
     data = ( current_user.id, request.form['property_id'], request.form['name'],
              request.form['email'], request.form['phone'], request.form['message'] )
     cursor.execute("INSERT INTO enquiries1 (user_id,property_id,name,email,phone,message) VALUES (%s,%s,%s,%s,%s,%s)", data)
@@ -431,6 +453,9 @@ def enquiry():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    if not cursor:
+        flash("Database unavailable. Please try again later.")
+        return redirect(url_for("home"))
     # statistics for display
     cursor.execute("SELECT COUNT(*) AS cnt FROM properties")
     total_properties = cursor.fetchone()['cnt']
