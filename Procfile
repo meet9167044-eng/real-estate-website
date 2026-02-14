@@ -1,1 +1,1 @@
-web: gunicorn app:app
+web: pip install --upgrade pip setuptools wheel && gunicorn app:app
