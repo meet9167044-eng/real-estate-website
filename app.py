@@ -12,27 +12,17 @@ app.secret_key = 'your_secret_key_here'
 # Database configuration from environment (safer for remote deploys)
 import os
 
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_USER = os.getenv('DB_USER', 'root')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'Meet12')
-DB_NAME = os.getenv('DB_NAME', 'property_db')
-DB_PORT = int(os.getenv('DB_PORT', 3306))
+DB_HOST = os.getenv("MYSQLHOST")
+DB_USER = os.getenv("MYSQLUSER")
+DB_PASSWORD = os.getenv("MYSQLPASSWORD")
+DB_NAME = os.getenv("MYSQLDATABASE")
+DB_PORT = int(os.getenv("MYSQLPORT", 3306))
 
 
-# Try to create the database if possible, but don't let import-time failures
-# stop the app from starting (Render won't start the process if import raises).
+# Connect to the database. Don't let import-time failures stop the app
+# from starting (Render won't start the process if import raises).
 db = None
 cursor = None
-try:
-    root = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
-    root_cursor = root.cursor()
-    # Use safe identifier — database name from env (trusted here)
-    root_cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-    root.commit()
-    root.close()
-except Exception as e:
-    app.logger.warning("Could not create database %s: %s", DB_NAME, e)
-
 try:
     db = mysql.connector.connect(
         host=DB_HOST,
