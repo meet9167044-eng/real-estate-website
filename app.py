@@ -16,6 +16,8 @@ DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_USER = os.getenv('DB_USER', 'root')
 DB_PASSWORD = os.getenv('DB_PASSWORD', 'Meet12')
 DB_NAME = os.getenv('DB_NAME', 'property_db')
+DB_PORT = int(os.getenv('DB_PORT', 3306))
+
 
 # Try to create the database if possible, but don't let import-time failures
 # stop the app from starting (Render won't start the process if import raises).
@@ -36,7 +38,8 @@ try:
         host=DB_HOST,
         user=DB_USER,
         password=DB_PASSWORD,
-        database=DB_NAME
+        database=DB_NAME,
+        port=DB_PORT
     )
     # IMPORTANT: buffered=True fixes "Unread result found"
     cursor = db.cursor(buffered=True, dictionary=True)
@@ -96,9 +99,16 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    cursor.execute("SELECT id, username, email FROM users WHERE id=%s", (user_id,))
+    if not cursor:
+        return None
+
+    cursor.execute(
+        "SELECT id, username, email FROM users WHERE id=%s",
+        (user_id,)
+    )
     row = cursor.fetchone()
     return User(row['id'], row['username'], row['email']) if row else None
+
 
 # --- Forms ---
 
