@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ property.title }} | Smart Property Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4158d0;
+            --secondary-color: #c850c0;
+            --accent-color: #ffcc70;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .hero-section {
+            background: linear-gradient(rgba(65, 88, 208, 0.8), rgba(200, 80, 192, 0.8)), url('{{ property.image }}') center/cover no-repeat;
+            padding: 100px 0;
+            color: white;
+        }
+
+        .detail-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 15px;
+        }
+
+        footer {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3" href="/">🏠 Smart Property Explorer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/wishlist">Wishlist</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-3">{{ property.title }}</h1>
+            <p class="lead mb-4">{{ property.city }} | {{ property.locality }}</p>
+        </div>
+    </section>
+
+    <section class="container my-5">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="detail-card p-4 shadow-lg">
+                    <h2 class="fw-bold text-primary mb-4">Property Details</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img src="{{ property.image }}" class="img-fluid rounded mb-3" alt="{{ property.title }}" onerror="this.src='https://via.placeholder.com/600x400?text={{ property.title|urlencode }}'">
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Price:</strong> ₹ {{ property.price_min }} - {{ property.price_max }} Lakh</p>
+                            <p><strong>Area:</strong> {{ property.area }} sq ft</p>
+                            <p><strong>BHK:</strong> {{ property.bhk }}</p>
+                            <p><strong>Type:</strong> {{ property.type }}</p>
+                            <p><strong>Furnishing:</strong> {{ property.furnishing }}</p>
+                            <p><strong>Possession:</strong> {{ property.possession }}</p>
+                        </div>
+                    </div>
+                    <p class="mt-3"><strong>Description:</strong> {{ property.description }}</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="detail-card p-4 shadow-lg">
+                    <h3 class="fw-bold text-primary mb-4">Contact Agent</h3>
+                    <form action="/enquiry" method="POST">
+                        <input type="hidden" name="property_id" value="{{ property.id }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message</label>
+                            <textarea class="form-control" id="message" name="message" rows="3">I'm interested in this property.</textarea>
+                        </div>
+                        {% if current_user.is_authenticated %}
+                            <div class="d-flex gap-2">
+                                {% if property.id in current_user_wishlist %}
+                                    <a href="/remove_from_wishlist/{{ property.id }}" class="btn btn-danger flex-fill">Remove from Wishlist</a>
+                                {% else %}
+                                    <a href="/add_to_wishlist/{{ property.id }}" class="btn btn-success flex-fill">Add to Wishlist</a>
+                                {% endif %}
+                                <button type="submit" class="btn btn-primary flex-fill">Send Inquiry</button>
+                            </div>
+                        {% else %}
+                            <div class="mb-3 text-center">
+                                <p class="text-muted">Please <a href="/login">login</a> to add to wishlist or send enquiry.</p>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Send Inquiry</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-4 mt-auto">
+        <div class="container text-center text-white">
+            <p class="mb-0">&copy; 2025 Smart Residential Property Explorer | Academic Major Project</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
