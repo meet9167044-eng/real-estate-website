@@ -9,59 +9,78 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-# --- Create DB if not exists ---
-root = mysql.connector.connect(host="localhost", user="root", password="Meet12")
-root_cursor = root.cursor()
-root_cursor.execute("CREATE DATABASE IF NOT EXISTS property_db")
-root.commit()
+# Database configuration from environment (safer for remote deploys)
+import os
 
-# --- Connect to property DB ---
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="Meet12",
-    database="property_db"
-)
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_USER = os.getenv('DB_USER', 'root')
+DB_PASSWORD = os.getenv('DB_PASSWORD', 'Meet12')
+DB_NAME = os.getenv('DB_NAME', 'property_db')
 
-# IMPORTANT: buffered=True fixes "Unread result found"
-cursor = db.cursor(buffered=True, dictionary=True)
+# Try to create the database if possible, but don't let import-time failures
+# stop the app from starting (Render won't start the process if import raises).
+db = None
+cursor = None
+try:
+    root = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
+    root_cursor = root.cursor()
+    # Use safe identifier — database name from env (trusted here)
+    root_cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
+    root.commit()
+    root.close()
+except Exception as e:
+    app.logger.warning("Could not create database %s: %s", DB_NAME, e)
 
-# --- Create Tables ---
+try:
+    db = mysql.connector.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME
+    )
+    # IMPORTANT: buffered=True fixes "Unread result found"
+    cursor = db.cursor(buffered=True, dictionary=True)
+except Exception as e:
+    app.logger.error("Database connection failed: %s", e)
+    db = None
+    cursor = None
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) UNIQUE,
-    email VARCHAR(255) UNIQUE,
-    password_hash VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
+# --- Create Tables (only if DB connected) ---
+if cursor:
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) UNIQUE,
+        email VARCHAR(255) UNIQUE,
+        password_hash VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS wishlists (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    property_id INT,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_user_property (user_id, property_id)
-)
-""")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS wishlists (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        property_id INT,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_property (user_id, property_id)
+    )
+    """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS enquiries1 (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    property_id INT,
-    name VARCHAR(255),
-    email VARCHAR(255),
-    phone VARCHAR(50),
-    message TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS enquiries1 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        property_id INT,
+        name VARCHAR(255),
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        message TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
-db.commit()
+    db.commit()
 
 # --- Login Manager Setup ---
 
@@ -155,7 +174,17 @@ def search():
         query += " AND bhk LIKE %s"
         params.append(f"%{bhk}%")
 
+    min_budget = request.args.get("min_budget")
+    max_budget = request.args.get("max_budget")
     min_area = request.args.get("min_area")
+
+    if min_budget:
+        query += " AND price_min >= %s"
+        params.append(min_budget)
+
+    if max_budget:
+        query += " AND price_max <= %s"
+        params.append(max_budget)
 
     if min_area:
         query += " AND area >= %s"
@@ -408,4 +437,5 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
+
