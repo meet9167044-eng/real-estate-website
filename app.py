@@ -12,11 +12,11 @@ app.secret_key = 'your_secret_key_here'
 # Database configuration from environment (safer for remote deploys)
 import os
 
-DB_HOST = os.getenv("MYSQLHOST")
-DB_USER = os.getenv("MYSQLUSER")
-DB_PASSWORD = os.getenv("MYSQLPASSWORD")
-DB_NAME = os.getenv("MYSQLDATABASE")
-DB_PORT = int(os.getenv("MYSQLPORT", 3306))
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "Meet12")
+DB_NAME = os.getenv("DB_NAME", "property_db")
+DB_PORT = int(os.getenv("DB_PORT", 3306))
 
 
 # Connect to the database. Don't let import-time failures stop the app
