@@ -5,3 +5,4 @@ Flask-WTF==1.2.1
 Werkzeug==2.3.7
 gunicorn>=22.0.0
 setuptools>=70.0.0
+email_validator
