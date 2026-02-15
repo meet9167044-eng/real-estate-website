@@ -153,7 +153,7 @@ def search():
         flash("Database unavailable. Please try again later.")
         return redirect(url_for("home"))
     params = []
-    query = "SELECT * FROM properties WHERE 1=1"
+    query = "SELECT * FROM properties1 WHERE 1=1"
 
     filters = ["city","locality","type","possession","furnishing","category"]
     for f in filters:
@@ -205,7 +205,7 @@ def property_detail(id):
     if not cursor:
         flash("Database unavailable. Please try again later.")
         return redirect(url_for("home"))
-    cursor.execute("SELECT * FROM properties WHERE id=%s", (id,))
+    cursor.execute("SELECT * FROM properties1 WHERE id=%s", (id,))
     property = cursor.fetchone()
     return render_template("property_detail.html", property=property)
 
@@ -311,7 +311,7 @@ def wishlist():
         flash("Database unavailable. Please try again later.")
         return redirect(url_for("home"))
     cursor.execute("""
-        SELECT p.* FROM properties p
+        SELECT p.* FROM properties1 p
         JOIN wishlists w ON p.id = w.property_id
         WHERE w.user_id=%s
     """, (current_user.id,))
@@ -347,7 +347,7 @@ def estimate_price():
     area_str = request.form.get('area', '').strip()
 
     # Get dashboard stats (unchanged)
-    cursor.execute("SELECT COUNT(*) AS cnt FROM properties")
+    cursor.execute("SELECT COUNT(*) AS cnt FROM properties1")
     total_properties = cursor.fetchone()['cnt']
     cursor.execute("SELECT COUNT(*) AS cnt FROM enquiries1 WHERE user_id=%s", (current_user.id,))
     total_enquiries = cursor.fetchone()['cnt']
@@ -398,11 +398,11 @@ def estimate_price():
                 estimate_high = area_val * (base_rate * high_mult)
                 note = f"Based on Feb 2026 market averages (~₹{base_rate:,}/sq ft in {matched_key.capitalize()}). Actual prices vary by exact locality, project, and amenities."
             else:
-                # Fallback: average from your own properties table
+                # Fallback: average from your own properties1 table
                 cursor.execute(
                     """
                     SELECT AVG((price_min + price_max) / 2 / area) AS avg_rate
-                    FROM properties
+                    FROM properties1
                     WHERE (city LIKE %s OR locality LIKE %s) AND area > 0
                     """,
                     (f"%{city_input}%", f"%{city_input}%")
@@ -412,7 +412,7 @@ def estimate_price():
                     base_rate = float(row['avg_rate'])
                     estimate_low = area_val * (base_rate * 0.85)
                     estimate_high = area_val * (base_rate * 1.15)
-                    note = f"Based on properties in your database for '{city_input}' (~₹{base_rate:.0f}/sq ft average)."
+                    note = f"Based on properties1 in your database for '{city_input}' (~₹{base_rate:.0f}/sq ft average)."
                 else:
                     note = "No market data or properties found for this place. Try major cities like Chennai, Mumbai, Bengaluru, Pune, etc."
 
@@ -420,14 +420,14 @@ def estimate_price():
                 mid_estimate = (estimate_low + estimate_high) / 2
                 mid_rate = mid_estimate / area_val if area_val > 0 else 0
 
-                # Matching properties: city/locality match + area within ±50% + price overlap
+                # Matching properties1: city/locality match + area within ±50% + price overlap
                 # Note: prices in DB are in lakhs; estimate is in rupees
                 estimate_low_lakhs = estimate_low / 100000
                 estimate_high_lakhs = estimate_high / 100000
 
                 cursor.execute("""
                     SELECT id, title, city, locality, bhk, area, price_min, price_max, furnishing, possession, type, category, image
-                    FROM properties
+                    FROM properties1
                     WHERE (city LIKE %s OR locality LIKE %s)
                       AND area BETWEEN %s AND %s
                       AND (
@@ -486,7 +486,7 @@ def dashboard():
         flash("Database unavailable. Please try again later.")
         return redirect(url_for("home"))
     # statistics for display
-    cursor.execute("SELECT COUNT(*) AS cnt FROM properties")
+    cursor.execute("SELECT COUNT(*) AS cnt FROM properties1")
     total_properties = cursor.fetchone()['cnt']
     cursor.execute("SELECT COUNT(*) AS cnt FROM enquiries1 WHERE user_id=%s", (current_user.id,))
     total_enquiries = cursor.fetchone()['cnt']
