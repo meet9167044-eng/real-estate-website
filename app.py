@@ -211,37 +211,76 @@ def property_detail(id):
 
 # --- Auth ---
 
-@app.route("/signup", methods=["GET","POST"])
+@app.route("/signup", methods=["GET", "POST"])
 def signup():
     form = SignupForm()
+
     if form.validate_on_submit():
         if not cursor:
-            flash("Database unavailable. Please try again later.")
+            flash("Database unavailable. Try again later.")
             return redirect(url_for("signup"))
+
+        username = form.username.data.strip()
+        email = form.email.data.strip().lower()
+        password = form.password.data
+
         try:
-            cursor.execute("INSERT INTO users (username,email,password_hash) VALUES (%s,%s,%s)",
-                           (form.username.data, form.email.data, generate_password_hash(form.password.data)))
+            # Check existing email
+            cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
+            if cursor.fetchone():
+                flash("Email already registered.")
+                return render_template("signup.html", form=form)
+
+            hashed_password = generate_password_hash(password)
+
+            cursor.execute(
+                "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
+                (username, email, hashed_password)
+            )
             db.commit()
-            flash("Account created! Login now.")
+
+            flash("Account created successfully. Please login.")
             return redirect(url_for("login"))
-        except mysql.connector.IntegrityError:
-            flash("User already exists.")
+
+        except Exception as e:
+            app.logger.error(f"Signup error: {e}")
+            flash("Signup failed. Try again.")
+
     return render_template("signup.html", form=form)
 
-@app.route("/login", methods=["GET","POST"])
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
     form = LoginForm()
+
     if form.validate_on_submit():
         if not cursor:
-            flash("Database unavailable. Please try again later.")
+            flash("Database unavailable. Try again later.")
             return redirect(url_for("login"))
-        cursor.execute("SELECT * FROM users WHERE email=%s", (form.email.data,))
-        u = cursor.fetchone()
-        if u and check_password_hash(u['password_hash'], form.password.data):
-            login_user(User(u['id'], u['username'], u['email']))
-            return redirect(url_for("home"))
-        flash("Invalid login.")
+
+        email = form.email.data.strip().lower()
+        password = form.password.data
+
+        try:
+            cursor.execute(
+                "SELECT id, username, email, password_hash FROM users WHERE email=%s",
+                (email,)
+            )
+            user = cursor.fetchone()
+
+            if user and check_password_hash(user["password_hash"], password):
+                login_user(User(user["id"], user["username"], user["email"]))
+                flash("Login successful.")
+                return redirect(url_for("home"))
+            else:
+                flash("Invalid email or password.")
+
+        except Exception as e:
+            app.logger.error(f"Login error: {e}")
+            flash("Login failed. Try again.")
+
     return render_template("login.html", form=form)
+
 
 @app.route("/logout")
 @login_required
