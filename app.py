@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Email, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = os.getenv("SECRET_KEY", "supersecret123")
 
 # Database configuration from environment (safer for remote deploys)
 import os
