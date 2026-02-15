@@ -6,11 +6,9 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import os
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecret123")
-
-# Database configuration from environment (safer for remote deploys)
-import os
 
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_USER = os.getenv("DB_USER", "root")
